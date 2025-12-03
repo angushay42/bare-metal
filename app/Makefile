@@ -5,11 +5,9 @@ Q		:= @
 NULL		:= 2>/dev/null
 endif
 
-SRC_DIR        = src
-INC_DIR        = inc
-OPENCM3_DIR    = ../libopencm3
-SHARED_SRC_DIR = ../shared/src
-SHARED_INC_DIR = ../shared/inc
+SRC_DIR     = src
+INC_DIR     = inc
+OPENCM3_DIR = ../libopencm3
 
 BINARY = firmware
 
@@ -33,7 +31,6 @@ LDFLAGS		+= -L$(OPENCM3_DIR)/lib
 
 DEFS		+= -I$(OPENCM3_DIR)/include
 DEFS		+= -I$(INC_DIR)
-DEFS		+= -I$(SHARED_INC_DIR)
 
 ###############################################################################
 # Executables
@@ -49,7 +46,7 @@ OBJCOPY		:= $(PREFIX)objcopy
 OBJDUMP		:= $(PREFIX)objdump
 GDB		:= $(PREFIX)gdb
 STFLASH		= $(shell which st-flash)
-OPT		:= -Os
+OPT		:= -Os  # changed with Claude
 DEBUG		:= -ggdb3
 CSTD		?= -std=c99
 
@@ -58,12 +55,6 @@ CSTD		?= -std=c99
 # Source files
 
 OBJS		+= $(SRC_DIR)/$(BINARY).o
-OBJS		+= $(SRC_DIR)/bootloader.o
-OBJS		+= $(SRC_DIR)/timer.o
-OBJS		+= $(SRC_DIR)/info.o
-OBJS		+= $(SHARED_SRC_DIR)/core/system.o
-OBJS		+= $(SHARED_SRC_DIR)/core/uart.o
-OBJS		+= $(SHARED_SRC_DIR)/core/ring-buffer.o
 
 ###############################################################################
 # C flags
@@ -124,7 +115,6 @@ list: $(BINARY).list
 GENERATED_BINARIES=$(BINARY).elf $(BINARY).bin $(BINARY).hex $(BINARY).srec $(BINARY).list $(BINARY).map
 
 images: $(BINARY).images
-flash: $(BINARY).flash
 
 $(OPENCM3_DIR)/lib/lib$(LIBNAME).a:
 ifeq (,$(wildcard $@))
@@ -182,6 +172,13 @@ clean:
 	@#printf "  CLEAN\n"
 	$(Q)$(RM) $(GENERATED_BINARIES) generated.* $(OBJS) $(OBJS:%.o=%.d)
 
+
+flash: $(BINARY).elf
+	openocd -f interface/stlink.cfg -f target/stm32f4x.cfg \
+		-c "program $(BINARY).elf verify reset exit"
+		
+debug: $(BINARY).elf
+	openocd -f interface/stlink.cfg -f target/stm32f4x.cfg
 
 .PHONY: images clean elf bin hex srec list
 
